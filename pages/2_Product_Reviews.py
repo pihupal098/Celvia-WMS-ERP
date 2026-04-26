@@ -8,11 +8,13 @@ import re
 # --- PAGE CONFIGURATION & GLASSMORPHISM CSS ---
 st.set_page_config(page_title="AI E-Com Intelligence", layout="wide", page_icon="🧠")
 
-# 👇 AAPKI ASLI API KEY YAHAN FIX KAR DI GAYI HAI 👇
+# 👇 AAPKI EXACT API KEY YAHAN FIT KAR DI GAYI HAI 👇
 GEMINI_API_KEY = "AIzaSyC0ozBfgQ5UTyqGKWbAx0qlkguQqu89KaY" 
 
-if GEMINI_API_KEY:
+try:
     genai.configure(api_key=GEMINI_API_KEY)
+except Exception as e:
+    st.sidebar.error("API Setup failed.")
 
 st.markdown("""
 <style>
@@ -81,21 +83,25 @@ def analyze_reviews_with_ai(review_data_text):
     }}
     """
     try:
+        # Using gemini-pro which is highly stable and won't throw 404
         model = genai.GenerativeModel('gemini-pro')
         response = model.generate_content(prompt)
         text_output = response.text
         
-        # PRO HACK: Regex to extract ONLY the JSON block, even if AI adds extra text
+        # Double safety: remove markdown blocks if AI ignored instructions
+        text_output = text_output.replace("```json", "").replace("```", "").strip()
+        
+        # Regex to pull out only the JSON dictionary
         match = re.search(r'\{.*\}', text_output, re.DOTALL)
         
         if match:
             clean_json = match.group(0)
             return json.loads(clean_json)
         else:
-            return {"error": "AI did not return a valid JSON format.", "raw_response": text_output}
+            return {"error": "AI response format failed.", "raw_response": text_output}
             
     except Exception as e:
-        return {"error": str(e), "raw_response": response.text if 'response' in locals() else "Unknown API Failure"}
+        return {"error": str(e), "raw_response": "Failed to connect to Google API."}
 
 # --- TABS SETUP ---
 tab1, tab2 = st.tabs(["🏢 My Seller Dashboard", "🕵️ Competitor Intelligence"])
@@ -134,11 +140,12 @@ with tab1:
                     
                     if "error" in ai_data:
                         st.error(f"❌ Error: {ai_data['error']}")
-                        with st.expander("Click to view AI's raw output (Debug)"):
+                        with st.expander("Click to view raw system logs"):
                             st.write(ai_data.get('raw_response', 'No data'))
                     else:
+                        # Full-proof data extraction (No KeyErrors)
                         score = ai_data.get('total_score', ai_data.get('score', 0))
-                        category = ai_data.get('category', 'Analyzed')
+                        category = ai_data.get('category', 'Analysis Complete')
                         bd = ai_data.get('score_breakdown', {})
                         
                         color_class = "score-green" if score >= 80 else "score-yellow" if score >= 55 else "score-red"
@@ -156,10 +163,10 @@ with tab1:
                         with c1:
                             st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
                             st.markdown("#### 📊 Score Breakdown")
-                            st.progress(bd.get('quality', 0) / 40, text=f"Quality: {bd.get('quality', 0)}/40")
-                            st.progress(bd.get('defect_rate', 0) / 30, text=f"Defects: {bd.get('defect_rate', 0)}/30")
-                            st.progress(bd.get('packaging', 0) / 15, text=f"Packaging: {bd.get('packaging', 0)}/15")
-                            st.progress(bd.get('value', 0) / 15, text=f"Value & Trends: {bd.get('value', 0)}/15")
+                            st.progress(min(bd.get('quality', 0) / 40, 1.0), text=f"Quality: {bd.get('quality', 0)}/40")
+                            st.progress(min(bd.get('defect_rate', 0) / 30, 1.0), text=f"Defects: {bd.get('defect_rate', 0)}/30")
+                            st.progress(min(bd.get('packaging', 0) / 15, 1.0), text=f"Packaging: {bd.get('packaging', 0)}/15")
+                            st.progress(min(bd.get('value', 0) / 15, 1.0), text=f"Value & Trends: {bd.get('value', 0)}/15")
                             st.markdown("</div>", unsafe_allow_html=True)
                             
                         with c2:
@@ -177,7 +184,7 @@ with tab1:
                         with c3:
                             st.markdown("<div class='glass-card'><h4>🚨 The Issue Matrix</h4>", unsafe_allow_html=True)
                             for issue in ai_data.get('issue_matrix', []):
-                                st.markdown(f"<span class='issue-badge'>{issue.get('mentions', '0')} Mentions</span> <span style='font-weight:bold;'>{issue.get('issue', 'Unknown Issue')}</span>", unsafe_allow_html=True)
+                                st.markdown(f"<span class='issue-badge'>{issue.get('mentions', '0')} Mentions</span> <span style='font-weight:bold;'>{issue.get('issue', 'Unknown')}</span>", unsafe_allow_html=True)
                                 st.markdown("<br>", unsafe_allow_html=True)
                             st.markdown("</div>", unsafe_allow_html=True)
                             
@@ -194,7 +201,7 @@ with tab1:
 # ==========================================
 with tab2:
     st.markdown("### 🕵️ Competitor Weakness Finder")
-    st.info("Paste a Flipkart or Amazon Product Link below. The system will use APIs to scrape reviews and analyze the competitor's weaknesses.")
+    st.info("Paste a Flipkart or Amazon Product Link below.")
     
     product_link = st.text_input("🔗 Paste Flipkart/Amazon Product URL:")
     
@@ -225,7 +232,7 @@ with tab2:
                     
                     if "error" in ai_data:
                         st.error(f"❌ AI Error: {ai_data['error']}")
-                        with st.expander("Click to view AI's raw output (Debug)"):
+                        with st.expander("Click to view raw system logs"):
                             st.write(ai_data.get('raw_response', 'No raw data available.'))
                     else:
                         score = ai_data.get('total_score', ai_data.get('score', 0))
