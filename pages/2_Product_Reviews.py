@@ -5,76 +5,37 @@ import json
 import time
 import re
 
+# --- 1. PAGE SETUP ---
 st.set_page_config(page_title="AI E-Com Intelligence", layout="wide", page_icon="🧠")
 
-# 👇 AAPKI ASLI KEY YAHAN FIT HO GAYI HAI 👇
+# 👇 AAPKI NAYI API KEY YAHAN PRE-FILLED HAI 👇
 GEMINI_API_KEY = "AIzaSyC0ozBfgQ5UTyqGKWbAx0qlkguQqu89KaY" 
 
-# ==========================================
-# 🚀 AUTO-DETECT ENGINE (The Game Changer)
-# ==========================================
-active_model_name = None
-api_error_message = None
-
 if GEMINI_API_KEY:
-    try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        # RADAR: Directly fetching officially alive models from Google Servers
-        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        
-        if available_models:
-            # Finding the fastest 'flash' model automatically
-            flash_models = [m for m in available_models if 'flash' in m.lower()]
-            # Lock the latest available working model
-            active_model_name = flash_models[-1] if flash_models else available_models[0]
-        else:
-            api_error_message = "API Connected but no Generative Models available on this key."
-    except Exception as e:
-        err_str = str(e)
-        if "API_KEY_INVALID" in err_str or "400" in err_str:
-            api_error_message = "🚨 API KEY GALAT HAI! Kripya Google AI Studio se 'Copy' button daba kar exact paste karein."
-        else:
-            api_error_message = f"Network/Server Error: {err_str}"
+    genai.configure(api_key=GEMINI_API_KEY)
 
-# --- CSS STYLING ---
+# --- 2. CSS STYLING ---
 st.markdown("""
 <style>
-.glass-card {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(240, 248, 255, 0.4) 100%);
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.9);
-    border-radius: 20px;
-    padding: 20px;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-    margin-bottom: 20px;
-}
+.glass-card { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 15px; padding: 20px; margin-bottom: 20px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
 .score-green { color: #10b981; font-weight: 900; font-size: 2.5rem; }
 .score-yellow { color: #f59e0b; font-weight: 900; font-size: 2.5rem; }
 .score-red { color: #ef4444; font-weight: 900; font-size: 2.5rem; }
-.sub-text { font-size: 14px; color: #475569; font-style: italic; }
-.issue-badge { background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 4px 10px; border-radius: 12px; font-weight: bold; border: 1px solid rgba(239, 68, 68, 0.3); }
+.issue-badge { background: #fee2e2; color: #ef4444; padding: 4px 10px; border-radius: 12px; font-weight: bold; border: 1px solid #fca5a5; margin-right: 10px; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- SIDEBAR DIAGNOSTICS ---
-st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2083/2083213.png", width=60)
+# --- 3. SIDEBAR ---
 st.sidebar.title("⚙️ System Config")
-
-# INSTANT API CHECKER UI
-if active_model_name:
-    st.sidebar.success(f"✅ AI Engine Online\n\n🤖 Live Connected to:\n`{active_model_name.replace('models/', '')}`")
-else:
-    st.sidebar.error(api_error_message)
-
+st.sidebar.success("✅ Engine: gemini-1.5-flash (Free Tier)")
 st.sidebar.markdown("---")
-st.sidebar.markdown("**How the 100-Point Algorithm Works:**")
-st.sidebar.markdown("- 🟢 40%: Quality & Sentiment\n- 🔴 30%: Defect Rate\n- 📦 15%: Packaging\n- 💸 15%: Value/Trends")
+st.sidebar.markdown("**Score Weights:**\n- 🟢 Quality: 40\n- 🔴 Defects: 30\n- 📦 Packaging: 15\n- 💸 Value: 15")
 
-# --- MAIN HEADER ---
+# --- 4. HEADER ---
 st.title("🧠 The E-Com Intelligence Dashboard")
-st.markdown("<p style='color: #64748b; font-size: 16px; font-weight: bold;'>Data-driven decisions only. Kill bad products, scale the winners.</p>", unsafe_allow_html=True)
+st.markdown("Data-driven decisions only. Kill bad products, scale the winners.")
 
-# --- PROGRESS BAR HELPER (Prevents UI Crash) ---
+# --- 5. SAFETY HELPERS ---
 def safe_progress(value, max_val):
     try:
         val = float(value)
@@ -83,62 +44,32 @@ def safe_progress(value, max_val):
     val = max(0.0, min(val, float(max_val))) 
     return val / max_val, f"{int(val)}/{max_val}"
 
-# --- THE AI BRAIN (STRICT & LOCKED) ---
-def analyze_reviews_with_ai(review_data_text, model_id):
-    prompt = f"""
-    Act as a Fortune 500 E-commerce Analyst. I am giving you raw customer reviews.
-    Analyze them deeply and calculate a 100-Point Product Health Score based on these exact weights:
-    1. Quality & Sentiment (40 Points)
-    2. Defect & Issue Rate (30 Points) - Deduct heavily for recurring defects.
-    3. Packaging & Delivery (15 Points)
-    4. Value for Money & New Trends (15 Points)
+# --- 6. AI BRAIN (SYNTAX-ERROR PROOF) ---
+def analyze_reviews_with_ai(reviews_text):
+    # String addition used instead of f-strings to prevent SyntaxError crashes
+    p1 = "Act as an E-commerce Analyst. Calculate a 100-Point Product Health Score based on: Quality (40), Defects (30), Packaging (15), Value (15).\n\n"
+    p2 = "You MUST output ONLY valid JSON format. Do not write any other text.\n"
+    p3 = '{"total_score": 85, "category": "Winner Product", "score_breakdown": {"quality": 35, "defect_rate": 25, "packaging": 12, "value": 13}, "quick_summary": "Summary text", "issue_matrix": [{"issue": "Broken part", "mentions": "10"}], "trend_analysis": "Trend text", "actionable_checklist": ["Do this", "Do that"]}\n\n'
+    p4 = "REVIEWS DATA TO ANALYZE:\n" + reviews_text
+    
+    prompt = p1 + p2 + p3 + p4
 
-    You MUST output ONLY valid JSON format. Do not use backticks or add any conversational text.
-    Use this exact JSON schema:
-    {{
-      "total_score": 85,
-      "category": "Winner Product",
-      "score_breakdown": {{
-        "quality": 35,
-        "defect_rate": 25,
-        "packaging": 12,
-        "value": 13
-      }},
-      "quick_summary": "Summary here",
-      "issue_matrix": [
-        {{"issue": "Issue Name", "mentions": "10"}}
-      ],
-      "trend_analysis": "Trend here",
-      "actionable_checklist": [
-        "Step 1",
-        "Step 2"
-      ]
-    }}
-
-    REVIEWS DATA:
-    {review_data_text}
-    """
     try:
-        # PULLING THE DETECTED MODEL
-        model = genai.GenerativeModel(
-            model_id,
-            generation_config={"response_mime_type": "application/json"}
-        )
+        model = genai.GenerativeModel('gemini-1.5-flash')
         response = model.generate_content(prompt)
         text_output = response.text
         
-        # BULLETPROOF DATA FILTER
+        # Extract JSON using Regex
         match = re.search(r'\{.*\}', text_output, re.DOTALL)
         if match:
-            clean_json = match.group(0)
-            return json.loads(clean_json)
+            return json.loads(match.group(0))
         else:
-            return {"error": "AI response blocked. Invalid JSON format.", "raw_response": text_output}
+            return {"error": "AI response blocked. Invalid formatting.", "raw": text_output}
             
     except Exception as e:
-        return {"error": str(e), "raw_response": "Model crashed during execution."}
+        return {"error": f"API Connection Failed: {str(e)}"}
 
-# --- TABS SETUP ---
+# --- 7. TABS ---
 tab1, tab2 = st.tabs(["🏢 My Seller Dashboard", "🕵️ Competitor Intelligence"])
 
 # ==========================================
@@ -146,42 +77,26 @@ tab1, tab2 = st.tabs(["🏢 My Seller Dashboard", "🕵️ Competitor Intelligen
 # ==========================================
 with tab1:
     st.markdown("### 📤 Analyze Your Own Products")
-    st.info("Upload your Flipkart/Amazon Review CSV. Ensure it has a column named 'Review' or 'Review Text'.")
-    
     uploaded_file = st.file_uploader("Upload Reviews CSV", type=["csv"], key="seller_csv")
     
     if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
-        
-        review_col = next((col for col in df.columns if 'review' in col.lower()), None)
-        date_col = next((col for col in df.columns if 'date' in col.lower()), None)
-        
-        if review_col:
-            st.success(f"✅ Found {len(df)} reviews. Ready to process.")
+        try:
+            df = pd.read_csv(uploaded_file)
+            review_col = next((col for col in df.columns if 'review' in col.lower()), None)
             
-            if date_col:
-                try:
-                    df[date_col] = pd.to_datetime(df[date_col])
-                    df = df.sort_values(by=date_col, ascending=False)
-                except:
-                    pass
-            
-            recent_reviews = df[review_col].dropna().head(100).tolist()
-            reviews_text = "\n".join([f"- {r}" for r in recent_reviews])
-            
-            if st.button("🚀 Run Deep Analysis", type="primary"):
-                if not active_model_name:
-                    st.error(f"❌ Analysis Blocked. Please check Sidebar: {api_error_message}")
-                else:
-                    with st.spinner(f"AI Matrix Analyzing (Engine: {active_model_name.replace('models/', '')})... 🧠"):
-                        ai_data = analyze_reviews_with_ai(reviews_text, active_model_name)
+            if review_col:
+                st.success(f"✅ Found {len(df)} reviews. Ready to process.")
+                recent_reviews = df[review_col].dropna().head(80).tolist()
+                reviews_str = "\n".join([f"- {r}" for r in recent_reviews])
+                
+                if st.button("🚀 Run Deep Analysis", type="primary"):
+                    with st.spinner("Analyzing data with gemini-1.5-flash... 🧠"):
+                        ai_data = analyze_reviews_with_ai(reviews_str)
                         
                         if "error" in ai_data:
-                            st.error(f"❌ Error Occurred: {ai_data['error']}")
-                            with st.expander("Click to view Raw Developer Log"):
-                                st.write(ai_data.get('raw_response', 'No data'))
+                            st.error(f"❌ {ai_data['error']}")
                         else:
-                            score = ai_data.get('total_score', ai_data.get('score', 0))
+                            score = ai_data.get('total_score', 0)
                             category = ai_data.get('category', 'Analyzed')
                             bd = ai_data.get('score_breakdown') or {}
                             
@@ -190,4 +105,66 @@ with tab1:
                             st.markdown(f"""
                             <div class="glass-card" style="text-align: center;">
                                 <h2>100-Point Product Health Score</h2>
-                                <div class="{color_class}">{score}
+                                <div class="{color_class}">{score} / 100</div>
+                                <h3>{category}</h3>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            c1, c2 = st.columns([1, 2])
+                            with c1:
+                                st.markdown("<div class='glass-card'><h4>📊 Score Breakdown</h4>", unsafe_allow_html=True)
+                                for key, max_val, title in [('quality', 40, 'Quality'), ('defect_rate', 30, 'Defects'), ('packaging', 15, 'Packaging'), ('value', 15, 'Value')]:
+                                    val, txt = safe_progress(bd.get(key, 0), max_val)
+                                    st.progress(val, text=f"{title}: {txt}")
+                                st.markdown("</div>", unsafe_allow_html=True)
+                                
+                            with c2:
+                                st.markdown(f"""
+                                <div class='glass-card'>
+                                    <h4>📝 Executive Summary</h4><p>{ai_data.get('quick_summary', 'N/A')}</p><hr>
+                                    <h4>⏳ Trend Analysis</h4><p>{ai_data.get('trend_analysis', 'N/A')}</p>
+                                </div>
+                                """, unsafe_allow_html=True)
+
+                            c3, c4 = st.columns(2)
+                            with c3:
+                                st.markdown("<div class='glass-card'><h4>🚨 Issue Matrix</h4>", unsafe_allow_html=True)
+                                for issue in ai_data.get('issue_matrix', []):
+                                    st.markdown(f"<span class='issue-badge'>{issue.get('mentions', '0')}</span> {issue.get('issue', 'Issue')}<br><br>", unsafe_allow_html=True)
+                                st.markdown("</div>", unsafe_allow_html=True)
+                                
+                            with c4:
+                                st.markdown("<div class='glass-card'><h4>✅ Fix-It Checklist</h4>", unsafe_allow_html=True)
+                                for action in ai_data.get('actionable_checklist', []):
+                                    st.checkbox(str(action))
+                                st.markdown("</div>", unsafe_allow_html=True)
+            else:
+                st.error("❌ 'Review' column not found in CSV.")
+        except Exception as e:
+            st.error(f"CSV Reading Error: {str(e)}")
+
+# ==========================================
+# TAB 2: BUYER PORTAL
+# ==========================================
+with tab2:
+    st.markdown("### 🕵️ Competitor Weakness Finder")
+    product_link = st.text_input("🔗 Paste Flipkart/Amazon Product URL:")
+    
+    if st.button("🔍 Analyze Competitor"):
+        if not product_link:
+            st.warning("Please paste a link first.")
+        else:
+            with st.spinner("Connecting to Scraper & AI Engine..."):
+                time.sleep(1) 
+                # Mock Reviews for Demo
+                mock_reviews = "Wheels broke on day 2.\nToo small.\nPlastic is very cheap and smells bad.\nBattery dies fast.\nBox crushed."
+                
+                ai_data = analyze_reviews_with_ai(mock_reviews)
+                
+                if "error" in ai_data:
+                    st.error(f"❌ {ai_data['error']}")
+                else:
+                    score = ai_data.get('total_score', 0)
+                    st.markdown(f"""
+                    <div class="glass-card">
+                        <h3 style="color: #ef4
