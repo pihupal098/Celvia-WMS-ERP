@@ -3,11 +3,12 @@ import pandas as pd
 import google.generativeai as genai
 import json
 import time
+import re
 
 # --- PAGE CONFIGURATION & GLASSMORPHISM CSS ---
 st.set_page_config(page_title="AI E-Com Intelligence", layout="wide", page_icon="🧠")
 
-# 👇 API KEY PRE-FILLED (Hamesha ke liye set) 👇
+# 👇 API KEY PRE-FILLED 👇
 GEMINI_API_KEY = "AIzaSyCHRRH_LgVpMZI5lVjygPz-naWq6zsdsGA" 
 
 if GEMINI_API_KEY:
@@ -45,7 +46,7 @@ st.sidebar.markdown("- 🟢 40%: Quality & Sentiment\n- 🔴 30%: Defect Rate\n-
 st.title("🧠 The E-Com Intelligence Dashboard")
 st.markdown("<p style='color: #64748b; font-size: 16px; font-weight: bold;'>Data-driven decisions only. Kill bad products, scale the winners.</p>", unsafe_allow_html=True)
 
-# --- THE AI BRAIN (PROMPT ENGINEERING) ---
+# --- THE AI BRAIN (BULLETPROOF PROMPT & REGEX) ---
 def analyze_reviews_with_ai(review_data_text):
     prompt = f"""
     Act as a Fortune 500 E-commerce Analyst. I am giving you raw customer reviews.
@@ -82,10 +83,20 @@ def analyze_reviews_with_ai(review_data_text):
     try:
         model = genai.GenerativeModel('gemini-pro')
         response = model.generate_content(prompt)
-        clean_json = response.text.replace("```json", "").replace("```", "").strip()
-        return json.loads(clean_json)
+        text_output = response.text
+        
+        # PRO HACK: Regex to extract ONLY the JSON block, even if AI adds extra text
+        match = re.search(r'\{.*\}', text_output, re.DOTALL)
+        
+        if match:
+            clean_json = match.group(0)
+            return json.loads(clean_json)
+        else:
+            return {"error": "AI did not return a valid JSON format.", "raw_response": text_output}
+            
     except Exception as e:
-        return {"error": str(e), "raw_response": "API Failure"}
+        # Added actual error tracking
+        return {"error": str(e), "raw_response": response.text if 'response' in locals() else "Unknown API Failure"}
 
 # --- TABS SETUP ---
 tab1, tab2 = st.tabs(["🏢 My Seller Dashboard", "🕵️ Competitor Intelligence"])
@@ -123,9 +134,10 @@ with tab1:
                     ai_data = analyze_reviews_with_ai(reviews_text)
                     
                     if "error" in ai_data:
-                        st.error("❌ AI Output Parsing Error. Please click Run again.")
+                        st.error(f"❌ Error: {ai_data['error']}")
+                        with st.expander("Click to view AI's raw output (Debug)"):
+                            st.write(ai_data.get('raw_response', 'No data'))
                     else:
-                        # BULLETPROOF GET METHODS (No KeyError possible)
                         score = ai_data.get('total_score', ai_data.get('score', 0))
                         category = ai_data.get('category', 'Analyzed')
                         bd = ai_data.get('score_breakdown', {})
@@ -213,9 +225,10 @@ with tab2:
                     ai_data = analyze_reviews_with_ai(mock_competitor_reviews)
                     
                     if "error" in ai_data:
-                        st.error("❌ AI Output Parsing Error. Please click Analyze again.")
+                        st.error(f"❌ AI Error: {ai_data['error']}")
+                        with st.expander("Click to view AI's raw output (Debug)"):
+                            st.write(ai_data.get('raw_response', 'No raw data available.'))
                     else:
-                        # BULLETPROOF GET METHOD HERE TOO
                         score = ai_data.get('total_score', ai_data.get('score', 0))
                         summary = ai_data.get('quick_summary', ai_data.get('summary', 'No summary available.'))
                         
