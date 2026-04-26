@@ -8,8 +8,8 @@ import re
 # --- 1. PAGE SETUP ---
 st.set_page_config(page_title="AI E-Com Intelligence", layout="wide", page_icon="🧠")
 
-# 👇 AAPKI NAYI API KEY YAHAN PRE-FILLED HAI 👇
-GEMINI_API_KEY = "AIzaSyC0ozBfgQ5UTyqGKWbAx0qlkguQqu89KaY" 
+# 👇 APNI COPY KI HUI API KEY YAHAN PASTE KAREIN 👇
+GEMINI_API_KEY = "AIzaSyCHRRH_LgVpMZI5lVjygPz-naWq6zsdsGA" 
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
@@ -167,4 +167,10 @@ with tab2:
                     score = ai_data.get('total_score', 0)
                     st.markdown(f"""
                     <div class="glass-card">
-                        <h3 style="color: #ef4
+                        <h3 style="color: #ef4444;">Vulnerability Score: {score}/100</h3>
+                        <p><strong>Weakness:</strong> {ai_data.get('quick_summary', 'N/A')}</p>
+                        <h4>How to beat them:</h4><ul>
+                    """, unsafe_allow_html=True)
+                    for action in ai_data.get('actionable_checklist', []):
+                        st.markdown(f"<li>{action}</li>", unsafe_allow_html=True)
+                    st.markdown("</ul></div>", unsafe_allow_html=True)
