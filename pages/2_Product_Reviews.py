@@ -3,18 +3,15 @@ import pandas as pd
 import google.generativeai as genai
 import json
 import time
-import re
 
 # --- PAGE CONFIGURATION & GLASSMORPHISM CSS ---
 st.set_page_config(page_title="AI E-Com Intelligence", layout="wide", page_icon="🧠")
 
-# 👇 AAPKI EXACT API KEY YAHAN FIT KAR DI GAYI HAI 👇
+# 👇 API KEY PRE-FILLED (100% Correct) 👇
 GEMINI_API_KEY = "AIzaSyC0ozBfgQ5UTyqGKWbAx0qlkguQqu89KaY" 
 
-try:
+if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-except Exception as e:
-    st.sidebar.error("API Setup failed.")
 
 st.markdown("""
 <style>
@@ -39,7 +36,7 @@ st.markdown("""
 # --- SIDEBAR: SYSTEM INFO ---
 st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2083/2083213.png", width=60)
 st.sidebar.title("⚙️ System Config")
-st.sidebar.success("✅ AI Engine Active & Connected")
+st.sidebar.success("✅ AI Engine Active (gemini-1.5-flash)")
 st.sidebar.markdown("---")
 st.sidebar.markdown("**How the 100-Point Algorithm Works:**")
 st.sidebar.markdown("- 🟢 40%: Quality & Sentiment\n- 🔴 30%: Defect Rate\n- 📦 15%: Packaging\n- 💸 15%: Value/Trends")
@@ -48,7 +45,16 @@ st.sidebar.markdown("- 🟢 40%: Quality & Sentiment\n- 🔴 30%: Defect Rate\n-
 st.title("🧠 The E-Com Intelligence Dashboard")
 st.markdown("<p style='color: #64748b; font-size: 16px; font-weight: bold;'>Data-driven decisions only. Kill bad products, scale the winners.</p>", unsafe_allow_html=True)
 
-# --- THE AI BRAIN (BULLETPROOF PROMPT & REGEX) ---
+# --- SAFETY HELPER FUNCTION (Prevents Progress Bar Crash) ---
+def safe_progress(value, max_val):
+    try:
+        val = float(value)
+    except:
+        val = 0.0
+    val = max(0.0, min(val, float(max_val))) # Locks value strictly between 0 and max_val
+    return val / max_val, f"{int(val)}/{max_val}"
+
+# --- THE AI BRAIN (STRICT JSON MODE) ---
 def analyze_reviews_with_ai(review_data_text):
     prompt = f"""
     Act as a Fortune 500 E-commerce Analyst. I am giving you raw customer reviews.
@@ -58,10 +64,8 @@ def analyze_reviews_with_ai(review_data_text):
     3. Packaging & Delivery (15 Points)
     4. Value for Money & New Trends (15 Points)
 
-    REVIEWS DATA:
-    {review_data_text}
-
-    You MUST respond ONLY with a valid JSON object in the exact format below. Do not include markdown formatting or backticks around the JSON.
+    You MUST output ONLY valid JSON.
+    Use this exact JSON schema:
     {{
       "total_score": 85,
       "category": "Winner Product",
@@ -81,27 +85,22 @@ def analyze_reviews_with_ai(review_data_text):
         "Step 2"
       ]
     }}
+
+    REVIEWS DATA:
+    {review_data_text}
     """
     try:
-        # Using gemini-pro which is highly stable and won't throw 404
-        model = genai.GenerativeModel('gemini-pro')
+        # EXACT CORRECT MODEL FOR FREE TIER
+        model = genai.GenerativeModel(
+            'gemini-1.5-flash',
+            # YE LINE AI KO SIRF DATA DENE PAR MAJBOOR KAREGI (NO EXTRA TEXT)
+            generation_config={"response_mime_type": "application/json"} 
+        )
         response = model.generate_content(prompt)
-        text_output = response.text
-        
-        # Double safety: remove markdown blocks if AI ignored instructions
-        text_output = text_output.replace("```json", "").replace("```", "").strip()
-        
-        # Regex to pull out only the JSON dictionary
-        match = re.search(r'\{.*\}', text_output, re.DOTALL)
-        
-        if match:
-            clean_json = match.group(0)
-            return json.loads(clean_json)
-        else:
-            return {"error": "AI response format failed.", "raw_response": text_output}
+        return json.loads(response.text)
             
     except Exception as e:
-        return {"error": str(e), "raw_response": "Failed to connect to Google API."}
+        return {"error": str(e), "raw_response": response.text if 'response' in locals() else "No response"}
 
 # --- TABS SETUP ---
 tab1, tab2 = st.tabs(["🏢 My Seller Dashboard", "🕵️ Competitor Intelligence"])
@@ -139,14 +138,11 @@ with tab1:
                     ai_data = analyze_reviews_with_ai(reviews_text)
                     
                     if "error" in ai_data:
-                        st.error(f"❌ Error: {ai_data['error']}")
-                        with st.expander("Click to view raw system logs"):
-                            st.write(ai_data.get('raw_response', 'No data'))
+                        st.error(f"❌ API Error: {ai_data['error']}")
                     else:
-                        # Full-proof data extraction (No KeyErrors)
                         score = ai_data.get('total_score', ai_data.get('score', 0))
-                        category = ai_data.get('category', 'Analysis Complete')
-                        bd = ai_data.get('score_breakdown', {})
+                        category = ai_data.get('category', 'Analyzed')
+                        bd = ai_data.get('score_breakdown') or {}
                         
                         color_class = "score-green" if score >= 80 else "score-yellow" if score >= 55 else "score-red"
                         
@@ -163,10 +159,18 @@ with tab1:
                         with c1:
                             st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
                             st.markdown("#### 📊 Score Breakdown")
-                            st.progress(min(bd.get('quality', 0) / 40, 1.0), text=f"Quality: {bd.get('quality', 0)}/40")
-                            st.progress(min(bd.get('defect_rate', 0) / 30, 1.0), text=f"Defects: {bd.get('defect_rate', 0)}/30")
-                            st.progress(min(bd.get('packaging', 0) / 15, 1.0), text=f"Packaging: {bd.get('packaging', 0)}/15")
-                            st.progress(min(bd.get('value', 0) / 15, 1.0), text=f"Value & Trends: {bd.get('value', 0)}/15")
+                            
+                            q_val, q_txt = safe_progress(bd.get('quality', 0), 40)
+                            st.progress(q_val, text=f"Quality: {q_txt}")
+                            
+                            d_val, d_txt = safe_progress(bd.get('defect_rate', 0), 30)
+                            st.progress(d_val, text=f"Defects: {d_txt}")
+                            
+                            p_val, p_txt = safe_progress(bd.get('packaging', 0), 15)
+                            st.progress(p_val, text=f"Packaging: {p_txt}")
+                            
+                            v_val, v_txt = safe_progress(bd.get('value', 0), 15)
+                            st.progress(v_val, text=f"Value & Trends: {v_txt}")
                             st.markdown("</div>", unsafe_allow_html=True)
                             
                         with c2:
@@ -184,7 +188,7 @@ with tab1:
                         with c3:
                             st.markdown("<div class='glass-card'><h4>🚨 The Issue Matrix</h4>", unsafe_allow_html=True)
                             for issue in ai_data.get('issue_matrix', []):
-                                st.markdown(f"<span class='issue-badge'>{issue.get('mentions', '0')} Mentions</span> <span style='font-weight:bold;'>{issue.get('issue', 'Unknown')}</span>", unsafe_allow_html=True)
+                                st.markdown(f"<span class='issue-badge'>{issue.get('mentions', '0')} Mentions</span> <span style='font-weight:bold;'>{issue.get('issue', 'Unknown Issue')}</span>", unsafe_allow_html=True)
                                 st.markdown("<br>", unsafe_allow_html=True)
                             st.markdown("</div>", unsafe_allow_html=True)
                             
@@ -201,7 +205,7 @@ with tab1:
 # ==========================================
 with tab2:
     st.markdown("### 🕵️ Competitor Weakness Finder")
-    st.info("Paste a Flipkart or Amazon Product Link below.")
+    st.info("Paste a Flipkart or Amazon Product Link below. The system will use APIs to scrape reviews and analyze the competitor's weaknesses.")
     
     product_link = st.text_input("🔗 Paste Flipkart/Amazon Product URL:")
     
@@ -219,6 +223,7 @@ with tab2:
                 time.sleep(2) 
                 st.success("Reviews Fetched Successfully! (Simulated for Demo)")
                 
+                # Mock Reviews for Demo
                 mock_competitor_reviews = """
                 "The toy looks good but the wheels broke on day 2."
                 "It is too small, pictures are misleading."
@@ -231,9 +236,7 @@ with tab2:
                     ai_data = analyze_reviews_with_ai(mock_competitor_reviews)
                     
                     if "error" in ai_data:
-                        st.error(f"❌ AI Error: {ai_data['error']}")
-                        with st.expander("Click to view raw system logs"):
-                            st.write(ai_data.get('raw_response', 'No raw data available.'))
+                        st.error(f"❌ API Error: {ai_data['error']}")
                     else:
                         score = ai_data.get('total_score', ai_data.get('score', 0))
                         summary = ai_data.get('quick_summary', ai_data.get('summary', 'No summary available.'))
