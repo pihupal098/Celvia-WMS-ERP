@@ -7,8 +7,8 @@ import time
 # --- PAGE CONFIGURATION & GLASSMORPHISM CSS ---
 st.set_page_config(page_title="AI E-Com Intelligence", layout="wide", page_icon="🧠")
 
-# 👇 API KEY EXACT MATCH (Fix ho gaya!) 👇
-GEMINI_API_KEY = "AIzaSyCHRRH_LgVpMZi5lVjygPz-naWq6zsdsGA" 
+# 👇 API KEY PRE-FILLED (Hamesha ke liye set) 👇
+GEMINI_API_KEY = "AIzaSyCHRRH_LgVpMZI5lVjygPz-naWq6zsdsGA" 
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
@@ -36,7 +36,7 @@ st.markdown("""
 # --- SIDEBAR: SYSTEM INFO ---
 st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2083/2083213.png", width=60)
 st.sidebar.title("⚙️ System Config")
-st.sidebar.success("✅ AI Engine Connected Perfectly!")
+st.sidebar.success("✅ AI Engine Active & Connected")
 st.sidebar.markdown("---")
 st.sidebar.markdown("**How the 100-Point Algorithm Works:**")
 st.sidebar.markdown("- 🟢 40%: Quality & Sentiment\n- 🔴 30%: Defect Rate\n- 📦 15%: Packaging\n- 💸 15%: Value/Trends")
@@ -80,7 +80,8 @@ def analyze_reviews_with_ai(review_data_text):
     }}
     """
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # YAHAN CHANGE KIYA HAI - Sabse stable model lagaya hai
+        model = genai.GenerativeModel('gemini-pro')
         response = model.generate_content(prompt)
         clean_json = response.text.replace("```json", "").replace("```", "").strip()
         return json.loads(clean_json)
