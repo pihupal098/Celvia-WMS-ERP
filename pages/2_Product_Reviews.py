@@ -9,7 +9,7 @@ import re
 st.set_page_config(page_title="AI E-Com Intelligence", layout="wide", page_icon="🧠")
 
 # 👇 APNI COPY KI HUI API KEY YAHAN PASTE KAREIN 👇
-GEMINI_API_KEY = "AIzaSyCHRRH_LgVpMZI5lVjygPz-naWq6zsdsGA" 
+GEMINI_API_KEY = "AIzaSyC0ozBfgQ5UTyqGKWbAx0qlkguQqu89KaY" 
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
