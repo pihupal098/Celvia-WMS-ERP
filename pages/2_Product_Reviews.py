@@ -8,8 +8,8 @@ import re
 # --- PAGE CONFIGURATION & GLASSMORPHISM CSS ---
 st.set_page_config(page_title="AI E-Com Intelligence", layout="wide", page_icon="🧠")
 
-# 👇 API KEY PRE-FILLED 👇
-GEMINI_API_KEY = "AIzaSyCHRRH_LgVpMZI5lVjygPz-naWq6zsdsGA" 
+# 👇 AAPKI ASLI API KEY YAHAN FIX KAR DI GAYI HAI 👇
+GEMINI_API_KEY = "AIzaSyC0ozBfgQ5UTyqGKWbAx0qlkguQqu89KaY" 
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
@@ -95,7 +95,6 @@ def analyze_reviews_with_ai(review_data_text):
             return {"error": "AI did not return a valid JSON format.", "raw_response": text_output}
             
     except Exception as e:
-        # Added actual error tracking
         return {"error": str(e), "raw_response": response.text if 'response' in locals() else "Unknown API Failure"}
 
 # --- TABS SETUP ---
